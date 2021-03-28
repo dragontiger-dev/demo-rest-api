@@ -1,0 +1,4 @@
+spring:
+  jackson:
+    deserialization:
+      fail_on_unknown_properties: true      # DTO 이외의 데이터가 포함될 경우 에러 발생

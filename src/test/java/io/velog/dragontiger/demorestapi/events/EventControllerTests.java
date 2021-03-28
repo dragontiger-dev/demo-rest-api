@@ -32,8 +32,7 @@ public class EventControllerTests {
     @Test
     public void createTest() throws Exception {
 
-        Event event = Event.builder()
-                .id(100)
+        EventDto event = EventDto.builder()
                 .name("Spring")
                 .description("REST API Development With Spring")
                 .beginEnrollmentDateTime(LocalDateTime.of(2021, 3, 29, 0, 0))
@@ -44,8 +43,6 @@ public class EventControllerTests {
                 .maxPrice(10000)
                 .limitOfEnrollment(100)
                 .location("강남역 D2 스타텁")
-                .free(true)
-                .offline(true)
                 .build();
 
         mockMvc.perform(post("/api/events")
@@ -62,5 +59,33 @@ public class EventControllerTests {
                 .andExpect(jsonPath("free").value(Matchers.not(true)))
                 .andExpect(jsonPath("offline").exists())
                 .andExpect(jsonPath("offline").value(Matchers.not(true)));
+    }
+
+    @Test
+    public void createTestBadRequest() throws Exception {
+
+        Event event = Event.builder()
+                .id(10)
+                .name("Spring")
+                .description("REST API Development With Spring")
+                .beginEnrollmentDateTime(LocalDateTime.of(2021, 3, 29, 0, 0))
+                .closeEnrollmentDateTime(LocalDateTime.of(2021, 4, 29, 0, 0))
+                .beginEventDateTime(LocalDateTime.of(2021, 3, 30, 17, 0))
+                .endEventDateTime(LocalDateTime.of(2021, 3, 30, 18, 0))
+                .basePrice(1000)
+                .maxPrice(10000)
+                .limitOfEnrollment(100)
+                .location("강남역 D2 스타텁")
+                .free(true)
+                .offline(true)
+                .eventStatus(EventStatus.PUBLISHED)
+                .build();
+
+        mockMvc.perform(post("/api/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(event))
+                .accept(MediaTypes.HAL_JSON))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
     }
 }
