@@ -3,11 +3,9 @@ package io.velog.dragontiger.demorestapi.events;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -15,6 +13,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -30,7 +30,7 @@ public class EventControllerTests {
     MockMvc mockMvc;
 
     @Test
-    public void createTest() throws Exception {
+    public void createEvent() throws Exception {
 
         EventDto event = EventDto.builder()
                 .name("Spring")
@@ -62,7 +62,7 @@ public class EventControllerTests {
     }
 
     @Test
-    public void createTestBadRequest() throws Exception {
+    public void createEventBadRequest() throws Exception {
 
         Event event = Event.builder()
                 .id(10)
@@ -85,6 +85,19 @@ public class EventControllerTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(event))
                 .accept(MediaTypes.HAL_JSON))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void createEventBadRequestEmptyInput() throws Exception {
+
+        EventDto eventDto = EventDto.builder()
+                .build();
+
+        mockMvc.perform(post("/api/events")
+                .contentType(MediaTypes.HAL_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(eventDto)))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
