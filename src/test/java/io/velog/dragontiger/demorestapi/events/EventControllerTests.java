@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -32,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @AutoConfigureRestDocs
 @Import(RestDocConfiguration.class)
+@ActiveProfiles("test")
 public class EventControllerTests {
 
     @Autowired
@@ -94,8 +96,8 @@ public class EventControllerTests {
                                     linkWithRel("update-event").description("link to update an existing event")
                             ),
                             requestHeaders(
-                                    headerWithName(HttpHeaders.ACCEPT).description("accept header"),
-                                    headerWithName(HttpHeaders.CONTENT_TYPE).description("content type header")
+                                    headerWithName(HttpHeaders.ACCEPT).description(MediaTypes.HAL_JSON),
+                                    headerWithName(HttpHeaders.CONTENT_TYPE).description(Constants.HAL_JSON_UTF8_VALUE)
                             ),
                             requestFields(
                                     fieldWithPath("name").description("이벤트 명"),
@@ -110,8 +112,7 @@ public class EventControllerTests {
                                     fieldWithPath("limitOfEnrollment").description("등록 한도")
                             ),
                             responseHeaders(
-                                    headerWithName(HttpHeaders.LOCATION).description("accept header"),
-                                    headerWithName(HttpHeaders.CONTENT_TYPE).description("content type header")
+                                    headerWithName(HttpHeaders.CONTENT_TYPE).description(Constants.HAL_JSON_UTF8_VALUE)
                             ),
                             // relaxedResponseFields(   // 필요한 필드만 검증
                             responseFields(             // 모든 필드 검증
@@ -203,7 +204,8 @@ public class EventControllerTests {
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$[0].objectName").exists())
                     .andExpect(jsonPath("$[0].code").exists())
-                    .andExpect(jsonPath("$[0].defaultMessage").exists());
+                    .andExpect(jsonPath("$[0].defaultMessage").exists())
+                    .andExpect(jsonPath("_links.index").exists());
                     // .andExpect(jsonPath("$[0].field").exists())
                     // .andExpect(jsonPath("$[0].rejectedValue").exists())
         }
