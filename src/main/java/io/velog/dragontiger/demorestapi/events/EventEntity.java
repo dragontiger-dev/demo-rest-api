@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.RepresentationModel;
 
-public class EventResource extends RepresentationModel<EntityModel<Event>> {
+public class EventEntity extends RepresentationModel<EntityModel<Event>> {
 
     @JsonUnwrapped
     private final Event event;
 
-    public EventResource(Event event) {
+    public EventEntity(Event event) {
         this.event = event;
     }
 

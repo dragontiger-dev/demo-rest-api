@@ -16,6 +16,7 @@ public class ErrorsSerializer extends JsonSerializer<Errors> {
 
     @Override
     public void serialize(Errors errors, JsonGenerator generator, SerializerProvider serializerProvider) throws IOException {
+        generator.writeFieldName("errors");
         generator.writeStartArray();
 
         errors.getFieldErrors().forEach((error) -> {
@@ -44,7 +45,6 @@ public class ErrorsSerializer extends JsonSerializer<Errors> {
                 ioException.printStackTrace();
             }
         });
-
         generator.writeEndArray();
     }
 }

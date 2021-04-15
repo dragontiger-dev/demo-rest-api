@@ -1,14 +1,18 @@
 package io.velog.dragontiger.demorestapi.events;
 
 import io.velog.dragontiger.demorestapi.common.Constants;
+import io.velog.dragontiger.demorestapi.index.IndexController;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.Errors;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +21,7 @@ import javax.validation.Valid;
 import java.net.URI;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Controller
 @RequestMapping(value = "/api/events", produces = MediaTypes.HAL_JSON_VALUE)
@@ -38,13 +43,13 @@ public class EventController {
 
         // 빈 값 유효성 검사
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(errors);
+            return badRequest(errors);
         }
 
         // 데이터 유효성 검사
         eventValidator.validate(eventDto, errors);
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(errors);
+            return badRequest(errors);
         }
 
         Event event = modelMapper.map(eventDto, Event.class);
@@ -55,12 +60,12 @@ public class EventController {
         URI createdUri = selfLinkBuilder.toUri();
         event.setId(10);
 
-        EventResource eventResource = new EventResource(event);
-        eventResource.add(linkTo(EventController.class).withRel("query-events"));
-        eventResource.add(selfLinkBuilder.withSelfRel());
-        eventResource.add(selfLinkBuilder.withRel("update-event"));
+        EventEntity eventEntity = new EventEntity(event);
+        eventEntity.add(linkTo(EventController.class).withRel("query-events"));
+        eventEntity.add(selfLinkBuilder.withSelfRel());
+        eventEntity.add(selfLinkBuilder.withRel("update-event"));
 
-        return ResponseEntity.created(createdUri).contentType(Constants.HAL_JSON_UTF8).body(eventResource);
+        return ResponseEntity.created(createdUri).contentType(Constants.HAL_JSON_UTF8).body(eventEntity);
     }
 
 }
