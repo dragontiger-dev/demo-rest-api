@@ -5,8 +5,11 @@ import io.velog.dragontiger.demorestapi.index.IndexController;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
@@ -58,14 +61,27 @@ public class EventController {
         Event newEvent = eventRepository.save(event);
         WebMvcLinkBuilder selfLinkBuilder = linkTo(EventController.class).slash(newEvent.getId());
         URI createdUri = selfLinkBuilder.toUri();
-        event.setId(10);
 
         EventEntity eventEntity = new EventEntity(event);
-        eventEntity.add(linkTo(EventController.class).withRel("query-events"));
-        eventEntity.add(selfLinkBuilder.withSelfRel());
         eventEntity.add(selfLinkBuilder.withRel("update-event"));
+        eventEntity.add(linkTo(EventController.class).withRel("query-events"));
+        eventEntity.add(Link.of("/docs/index.html#resources-events-create", "profile"));
 
         return ResponseEntity.created(createdUri).contentType(Constants.HAL_JSON_UTF8).body(eventEntity);
+    }
+
+    private ResponseEntity<EntityModel<Errors>> badRequest(Errors errors) {
+        EntityModel<Errors> errorEntity = EntityModel.of(errors);
+        errorEntity.add(linkTo(methodOn(IndexController.class).index()).withRel("index"));
+        return ResponseEntity.badRequest().body(errorEntity);
+    }
+
+    @GetMapping
+    public ResponseEntity<?> queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+        Page<Event> page = this.eventRepository.findAll(pageable);
+        var pagedModel = assembler.toModel(page, EventEntity::new);
+        pagedModel.add(Link.of("/docs/index.html#resources-events-list", "profile"));
+        return ResponseEntity.ok(pagedModel);
     }
 
 }

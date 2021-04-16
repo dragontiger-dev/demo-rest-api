@@ -19,12 +19,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.stream.IntStream;
 
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,6 +43,9 @@ public class EventControllerTests {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EventRepository eventRepository;
 
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -89,17 +94,17 @@ public class EventControllerTests {
                     .andExpect(jsonPath("_links.self").exists())
                     .andExpect(jsonPath("_links.query-events").exists())
                     .andExpect(jsonPath("_links.update-event").exists())
+                    .andExpect(jsonPath("_links.profile").exists())
                     .andDo(document("create-event",
                             links(
                                     linkWithRel("self").description("link to self"),
                                     linkWithRel("query-events").description("link to query-events"),
-                                    linkWithRel("update-event").description("link to update an existing event")
-                            ),
-                            requestHeaders(
+                                    linkWithRel("update-event").description("link to update an existing event"),
+                                    linkWithRel("profile").description("link to profile")
+                            ), requestHeaders(
                                     headerWithName(HttpHeaders.ACCEPT).description(MediaTypes.HAL_JSON),
                                     headerWithName(HttpHeaders.CONTENT_TYPE).description(Constants.HAL_JSON_UTF8_VALUE)
-                            ),
-                            requestFields(
+                            ), requestFields(
                                     fieldWithPath("name").description("이벤트 명"),
                                     fieldWithPath("description").description("이벤트 설명"),
                                     fieldWithPath("beginEnrollmentDateTime").description("이벤트 등록 시작 일시"),
@@ -110,11 +115,9 @@ public class EventControllerTests {
                                     fieldWithPath("basePrice").description("기본 가격"),
                                     fieldWithPath("maxPrice").description("최대 가격"),
                                     fieldWithPath("limitOfEnrollment").description("등록 한도")
-                            ),
-                            responseHeaders(
+                            ), responseHeaders(
                                     headerWithName(HttpHeaders.CONTENT_TYPE).description(Constants.HAL_JSON_UTF8_VALUE)
-                            ),
-                            // relaxedResponseFields(   // 필요한 필드만 검증
+                            ), // relaxedResponseFields(   // 필요한 필드만 검증
                             responseFields(             // 모든 필드 검증
                                     fieldWithPath("id").description("이벤트 ID"),
                                     fieldWithPath("name").description("이벤트 명"),
@@ -132,9 +135,11 @@ public class EventControllerTests {
                                     fieldWithPath("eventStatus").description("이벤트 상태"),
                                     fieldWithPath("_links.self.href").description("self 링크"),
                                     fieldWithPath("_links.query-events.href").description("이벤트 목록 조회 링크"),
-                                    fieldWithPath("_links.update-event.href").description("이벤트 갱신 링크")
+                                    fieldWithPath("_links.update-event.href").description("이벤트 갱신 링크"),
+                                    fieldWithPath("_links.profile.href").description("API 문서 링크")
                             )
-                    ));
+                    ))
+            ;
         }
 
         @Test
@@ -163,21 +168,22 @@ public class EventControllerTests {
                     .content(objectMapper.writeValueAsString(event))
                     .accept(MediaTypes.HAL_JSON))
                     .andDo(print())
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+            ;
         }
 
         @Test
         @DisplayName("빈 값이 포함된 요청을 보낼 경우 에러 발생")
         public void createEventBadRequestEmptyInput() throws Exception {
 
-            EventDto eventDto = EventDto.builder()
-                    .build();
+            EventDto eventDto = EventDto.builder().build();
 
             mockMvc.perform(post("/api/events")
                     .contentType(MediaTypes.HAL_JSON_VALUE)
                     .content(objectMapper.writeValueAsString(eventDto)))
                     .andDo(print())
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+            ;
         }
 
         @Test
@@ -195,7 +201,8 @@ public class EventControllerTests {
                     .maxPrice(1000)
                     .limitOfEnrollment(100)
                     .location("강남역 D2 스타텁")
-                    .build();
+                    .build()
+            ;
 
             mockMvc.perform(post("/api/events")
                     .contentType(MediaTypes.HAL_JSON_VALUE)
@@ -205,9 +212,56 @@ public class EventControllerTests {
                     .andExpect(jsonPath("errors[0].objectName").exists())
                     .andExpect(jsonPath("errors[0].code").exists())
                     .andExpect(jsonPath("errors[0].defaultMessage").exists())
-                    .andExpect(jsonPath("_links.index").exists());
+                    .andExpect(jsonPath("_links.index").exists())
+            ;
                     // .andExpect(jsonPath("$[0].field").exists())
                     // .andExpect(jsonPath("$[0].rejectedValue").exists())
+        }
+    }
+
+    @Nested
+    @DisplayName("Event 조회 : \"GET /api/events\"")
+    class GetEvent {
+
+        @Test
+        @DisplayName("이벤트 30개를 10개씩 두번째 페이지 조회")
+        public void queryEvents() throws Exception {
+            // Given
+            IntStream.range(0, 30).forEach(this::generateEvent);
+
+            // When
+            mockMvc.perform(get("/api/events")
+                            .param("page","1")
+                            .param("size","10")
+                            .param("sort","name,DESC")
+                    )
+            // Then
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("page").exists())
+                    .andExpect(jsonPath("_embedded.eventEntityList[0]._links.self").exists())
+                    .andExpect(jsonPath("_links.self").exists())
+                    .andExpect(jsonPath("_links.profile").exists())
+                    .andDo(document("query-events",
+                            links(
+                                    linkWithRel("self").description("link to self"),
+                                    linkWithRel("profile").description("link to profile"),
+                                    linkWithRel("next").description("link to page next"),
+                                    linkWithRel("last").description("link to page last"),
+                                    linkWithRel("prev").description("link to page previous"),
+                                    linkWithRel("first").description("link to page first")
+                            )
+                    ))
+            ;
+        }
+
+        private void generateEvent(int index) {
+            Event event = Event.builder()
+                    .name("event " + (char) ((int) 'a' + index))
+                    .description("test event")
+                    .build();
+
+            eventRepository.save(event);
         }
     }
 }
