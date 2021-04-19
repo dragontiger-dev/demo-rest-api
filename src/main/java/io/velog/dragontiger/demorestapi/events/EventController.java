@@ -106,8 +106,8 @@ public class EventController {
         if (errors.hasErrors())
             return badRequest(errors);
 
-        Event event = modelMapper.map(eventDto, Event.class);
-        event.setId(id);
+        Event event = eventOptional.get();
+        modelMapper.map(eventDto, event);
         eventRepository.save(event);
 
         EventEntity eventEntity = new EventEntity(event);

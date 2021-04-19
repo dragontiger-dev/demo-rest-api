@@ -1,22 +1,15 @@
 package io.velog.dragontiger.demorestapi.events;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.velog.dragontiger.demorestapi.common.BaseControllerTest;
 import io.velog.dragontiger.demorestapi.common.Constants;
-import io.velog.dragontiger.demorestapi.common.RestDocConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDateTime;
@@ -31,23 +24,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@AutoConfigureRestDocs
-@Import(RestDocConfiguration.class)
-@ActiveProfiles("test")
-public class EventControllerTests {
 
-    @Autowired
-    ObjectMapper objectMapper;
-
-    @Autowired
-    MockMvc mockMvc;
+public class EventControllerTests extends BaseControllerTest {
 
     @Autowired
     EventRepository eventRepository;
-
-    Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Nested
     @DisplayName("Event 생성 : \"POST /api/events\"")
@@ -416,6 +397,12 @@ public class EventControllerTests {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("name").exists())
                     .andExpect(jsonPath("_links.self").exists())
+                    .andDo(document("update-event",
+                            links(
+                                linkWithRel("self").description("link to self"),
+                                linkWithRel("profile").description("link to profile")
+                            )
+                    ))
             ;
         }
     }
