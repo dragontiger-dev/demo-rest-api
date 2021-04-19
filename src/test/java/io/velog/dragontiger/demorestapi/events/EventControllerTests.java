@@ -17,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDateTime;
 import java.util.stream.IntStream;
@@ -26,8 +27,7 @@ import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.li
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -176,20 +176,24 @@ public class EventControllerTests {
         @DisplayName("빈 값이 포함된 요청을 보낼 경우 에러 발생")
         public void createEventBadRequestEmptyInput() throws Exception {
 
+            // Given
             EventDto eventDto = EventDto.builder().build();
 
-            mockMvc.perform(post("/api/events")
+            // When
+            ResultActions resultActions = mockMvc.perform(post("/api/events")
                     .contentType(MediaTypes.HAL_JSON_VALUE)
-                    .content(objectMapper.writeValueAsString(eventDto)))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest())
-            ;
+                    .content(objectMapper.writeValueAsString(eventDto)));
+
+            // Then
+            resultActions.andDo(print())
+                    .andExpect(status().isBadRequest());;
         }
 
         @Test
         @DisplayName("틀린 값이 포함된 경우 에러 발생")
         public void createEventBadRequestWrongInput() throws Exception {
 
+            // Given
             EventDto eventDto = EventDto.builder()
                     .name("Spring")
                     .description("REST API Development With Spring")
@@ -204,10 +208,13 @@ public class EventControllerTests {
                     .build()
             ;
 
-            mockMvc.perform(post("/api/events")
+            // When
+            ResultActions resultActions = mockMvc.perform(post("/api/events")
                     .contentType(MediaTypes.HAL_JSON_VALUE)
-                    .content(objectMapper.writeValueAsString(eventDto)))
-                    .andDo(print())
+                    .content(objectMapper.writeValueAsString(eventDto)));
+
+            // Then
+            resultActions.andDo(print())
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("errors[0].objectName").exists())
                     .andExpect(jsonPath("errors[0].code").exists())
@@ -230,13 +237,14 @@ public class EventControllerTests {
             IntStream.range(0, 30).forEach(this::generateEvent);
 
             // When
-            mockMvc.perform(get("/api/events")
-                            .param("page","1")
-                            .param("size","10")
-                            .param("sort","name,DESC")
-                    )
+            ResultActions resultActions = mockMvc.perform(get("/api/events")
+                    .param("page", "1")
+                    .param("size", "10")
+                    .param("sort", "name,DESC")
+            );
+
             // Then
-                    .andDo(print())
+            resultActions.andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("page").exists())
                     .andExpect(jsonPath("_embedded.eventEntityList[0]._links.self").exists())
@@ -255,13 +263,160 @@ public class EventControllerTests {
             ;
         }
 
-        private void generateEvent(int index) {
+        @Test
+        @DisplayName("이벤트 한 건 조회")
+        public void getEvent() throws Exception {
+
+            // Given
+            Event event = this.generateEvent(0);
+
+            // When
+            ResultActions resultActions = mockMvc.perform(get("/api/events/{id}", event.getId()));
+
+            // Then
+            resultActions.andExpect(status().isOk())
+            .andExpect(jsonPath("name").exists())
+            .andExpect(jsonPath("id").exists())
+            .andExpect(jsonPath("_links.self").exists())
+            .andExpect(jsonPath("_links.profile").exists());;
+        }
+
+        @Test
+        @DisplayName("없는 이벤트 조회 시 404 에러")
+        public void getEvent404() throws Exception {
+
+            // Given X
+
+            // When
+            ResultActions resultActions = mockMvc.perform(get("/api/events/999999999"));
+
+            // Then
+            resultActions.andExpect(status().isNotFound());
+        }
+
+        public Event generateEvent(int index) {
             Event event = Event.builder()
-                    .name("event " + (char) ((int) 'a' + index))
+                    .name("event " + index)
                     .description("test event")
                     .build();
 
-            eventRepository.save(event);
+            return eventRepository.save(event);
+        }
+    }
+
+    @Nested
+    @DisplayName("Event 수정 : \"PUT /api/events/{id}\"")
+    class updateEvent {
+
+        @Test
+        @DisplayName("수정하려는 이벤트가 없는 경우 404 에러")
+        public void updateEventNotFound() throws Exception {
+
+            // Given
+            Event event = new GetEvent().generateEvent(0);
+            EventDto eventDto = EventDto.builder()
+                    .name("Spring")
+                    .description("REST API Development With Spring")
+                    .beginEnrollmentDateTime(LocalDateTime.of(2021, 3, 29, 0, 0))
+                    .closeEnrollmentDateTime(LocalDateTime.of(2021, 4, 29, 0, 0))
+                    .beginEventDateTime(LocalDateTime.of(2021, 3, 30, 17, 0))
+                    .endEventDateTime(LocalDateTime.of(2021, 3, 30, 18, 0))
+                    .basePrice(1000)
+                    .maxPrice(10000)
+                    .limitOfEnrollment(100)
+                    .location("강남역 D2 스타텁")
+                    .build();
+
+            // When
+            ResultActions resultActions = mockMvc.perform(put("/api/events/{id}", event.getId() + 1000)
+                    .contentType(MediaTypes.HAL_JSON_VALUE)
+                    .content(objectMapper.writeValueAsString(eventDto)));
+
+            // Then
+            resultActions.andDo(print())
+                    .andExpect(status().isNotFound())
+            ;
+        }
+
+        @Test
+        @DisplayName("올바르지 않은 값으로 이벤트를 갱신할 경우 400 에러")
+        public void updateEventNotValid() throws Exception {
+
+            // Given
+            Event event = new GetEvent().generateEvent(0);
+            EventDto eventDto = EventDto.builder()
+                    .name("Spring")
+                    .description("REST API Development With Spring")
+                    .beginEnrollmentDateTime(LocalDateTime.of(2021, 3, 29, 0, 0))
+                    .closeEnrollmentDateTime(LocalDateTime.of(2021, 4, 29, 0, 0))
+                    .beginEventDateTime(LocalDateTime.of(2021, 3, 30, 17, 0))
+                    .endEventDateTime(LocalDateTime.of(2021, 3, 30, 18, 0))
+                    .basePrice(1000)
+                    .maxPrice(10000)
+                    .limitOfEnrollment(100)
+                    .location("강남역 D2 스타텁")
+                    .build();
+
+            // When
+            ResultActions resultActions = mockMvc.perform(put("/api/events/{id}", event.getId())
+                    .contentType(MediaTypes.HAL_JSON_VALUE)
+                    .content(objectMapper.writeValueAsString(eventDto)));
+
+            // Then
+            resultActions.andDo(print())
+                    .andExpect(status().isBadRequest())
+            ;
+        }
+
+        @Test
+        @DisplayName("빈 값으로 이벤트를 갱신할 경우 400 에러")
+        public void updateEventNotValidBlank() throws Exception {
+
+            // Given
+            Event event = new GetEvent().generateEvent(0);
+            EventDto eventDto = EventDto.builder().build();
+
+            // When
+            ResultActions resultActions = mockMvc.perform(put("/api/events/{id}", event.getId())
+                    .contentType(MediaTypes.HAL_JSON_VALUE)
+                    .content(objectMapper.writeValueAsString(eventDto)));
+
+            // Then
+            resultActions.andDo(print())
+                    .andExpect(status().isBadRequest())
+            ;
+        }
+
+        @Test
+        @DisplayName("이벤트 생성 후 정상 업데이트")
+        public void updateEventValid() throws Exception {
+
+            // Given
+            Event event = new GetEvent().generateEvent(0);
+            EventDto eventDto = EventDto.builder()
+                    .name("Spring")
+                    .description("REST API Development With Spring")
+                    .beginEnrollmentDateTime(LocalDateTime.of(2021, 3, 29, 0, 0))
+                    .closeEnrollmentDateTime(LocalDateTime.of(2021, 3, 30, 15, 0))
+                    .beginEventDateTime(LocalDateTime.of(2021, 3, 30, 17, 0))
+                    .endEventDateTime(LocalDateTime.of(2021, 3, 30, 18, 0))
+                    .basePrice(1000)
+                    .maxPrice(10000)
+                    .limitOfEnrollment(100)
+                    .location("강남역 D2 스타텁")
+                    .build();
+
+            // When
+            ResultActions resultActions = mockMvc.perform(put("/api/events/{id}", event.getId())
+                    .contentType(MediaTypes.HAL_JSON_VALUE)
+                    .content(objectMapper.writeValueAsString(eventDto)));
+
+            // Then
+            resultActions.andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("name").exists())
+                    .andExpect(jsonPath("_links.self").exists())
+            ;
         }
     }
 }
