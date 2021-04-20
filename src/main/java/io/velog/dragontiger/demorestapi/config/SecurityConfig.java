@@ -53,11 +53,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.anonymous()
-                .and().formLogin()
-                .and().authorizeRequests()
-                    // .mvcMatchers(HttpMethod.GET, "/api/**").anonymous()
-                    .mvcMatchers(HttpMethod.GET, "/api/**").authenticated()
-                    .anyRequest().authenticated();
+        http.csrf().disable()
+                .anonymous().and()
+                .formLogin().and()
+                .authorizeRequests()
+                     .mvcMatchers(HttpMethod.GET, "/api/**").anonymous()
+                    //.mvcMatchers(HttpMethod.GET, "/api/**").authenticated()
+                .anyRequest().authenticated();
     }
 }
