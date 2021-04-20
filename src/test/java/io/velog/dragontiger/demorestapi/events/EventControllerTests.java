@@ -4,8 +4,6 @@ import io.velog.dragontiger.demorestapi.common.BaseControllerTest;
 import io.velog.dragontiger.demorestapi.common.Constants;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
