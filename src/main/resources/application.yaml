@@ -1,0 +1,28 @@
+spring:
+  jackson:
+    deserialization:
+      fail_on_unknown_properties: true      # DTO 이외의 데이터가 포함될 경우 에러 발생
+  datasource:
+    username: postgres
+    password: root
+    url: jdbc:postgresql://localhost:5433/postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        format_sql: true
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: debug
+        type:
+        descriptor:
+          sql:
+            BasicBinder: TRACE
