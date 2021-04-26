@@ -28,3 +28,11 @@ logging:
             BasicBinder: TRACE
       springframework:
         security: debug
+my-app:
+  admin-username: admin@gmail.com
+  admin-password: admin
+  user-username: user@gmail.com
+  user-password: user
+  client-id: myApp
+  client-secret: pass
+

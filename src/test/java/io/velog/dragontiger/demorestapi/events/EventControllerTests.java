@@ -4,8 +4,10 @@ import io.velog.dragontiger.demorestapi.accounts.Account;
 import io.velog.dragontiger.demorestapi.accounts.AccountRepository;
 import io.velog.dragontiger.demorestapi.accounts.AccountRole;
 import io.velog.dragontiger.demorestapi.accounts.AccountService;
+import io.velog.dragontiger.demorestapi.common.AppProperties;
 import io.velog.dragontiger.demorestapi.common.BaseControllerTest;
 import io.velog.dragontiger.demorestapi.common.Constants;
+import org.checkerframework.checker.units.qual.A;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,9 @@ public class EventControllerTests extends BaseControllerTest {
 
     @Autowired
     AccountService accountService;
+
+    @Autowired
+    AppProperties appProperties;
 
     @BeforeEach
     public void accountInit() {
@@ -428,8 +433,9 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     private String getAccessToken() throws Exception {
-        String username = "dragontiger@gmail.com";
-        String password = "dragontiger";
+        String username = appProperties.getUserUsername();
+        String password = appProperties.getUserPassword();
+
         Account dragontiger = Account.builder()
                 .email(username)
                 .password(password)
