@@ -7,7 +7,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class EventTests {
 
@@ -18,7 +19,7 @@ class EventTests {
                 .description("REST API development with Spring")
                 .build();
 
-        assertThat(event).isNotNull();
+        assertNotNull(event);
     }
 
     @Test
@@ -34,8 +35,8 @@ class EventTests {
         event.setDescription(description);
 
         // Then
-        assertThat(event.getName()).isEqualTo(name);
-        assertThat(event.getDescription()).isEqualTo(description);
+        assertEquals(name, event.getName());
+        assertEquals(description, event.getDescription());
     }
 
     private static Stream<Arguments> updateFreeParams() {
@@ -59,7 +60,7 @@ class EventTests {
         event.update();
 
         // Then
-        assertThat(event.isFree()).isEqualTo(result);
+        assertEquals(result, event.isFree());
     }
 
     private static Stream<Arguments> updateOfflineParams() {
@@ -84,6 +85,6 @@ class EventTests {
         event.update();
 
         // Then
-        assertThat(event.isOffline()).isEqualTo(result);
+        assertEquals(result, event.isOffline());
     }
 }
