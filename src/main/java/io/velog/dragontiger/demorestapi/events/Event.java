@@ -1,5 +1,8 @@
 package io.velog.dragontiger.demorestapi.events;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import io.velog.dragontiger.demorestapi.accounts.Account;
+import io.velog.dragontiger.demorestapi.accounts.AccountSerializer;
 import lombok.*;
 
 import javax.persistence.*;
@@ -41,6 +44,10 @@ public class Event {
 
     @Enumerated(EnumType.STRING) @Builder.Default
     private EventStatus eventStatus = EventStatus.DRAFT;
+
+    @ManyToOne
+    @JsonSerialize(using = AccountSerializer.class)
+    private Account manager;
 
     public void update() {
         this.free = (this.basePrice == 0 && this.maxPrice == 0);

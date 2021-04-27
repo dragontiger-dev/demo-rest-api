@@ -1,5 +1,7 @@
 package io.velog.dragontiger.demorestapi.events;
 
+import io.velog.dragontiger.demorestapi.accounts.Account;
+import io.velog.dragontiger.demorestapi.accounts.CurrentUser;
 import io.velog.dragontiger.demorestapi.common.Constants;
 import io.velog.dragontiger.demorestapi.index.IndexController;
 import org.modelmapper.ModelMapper;
@@ -13,7 +15,9 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.Errors;
 import org.springframework.validation.annotation.Validated;
@@ -42,7 +46,7 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createEntity(@RequestBody @Valid EventDto eventDto, Errors errors) {
+    public ResponseEntity<?> createEntity(@RequestBody @Valid EventDto eventDto, Errors errors, @CurrentUser Account account) {
 
         // 빈 값 유효성 검사
         if (errors.hasErrors()) {
@@ -56,6 +60,7 @@ public class EventController {
         }
 
         Event event = modelMapper.map(eventDto, Event.class);
+        event.setManager(account);
         event.update();
 
         Event newEvent = eventRepository.save(event);
@@ -71,15 +76,19 @@ public class EventController {
     }
 
     @GetMapping
-    public ResponseEntity<PagedModel<EventEntity>> queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+    public ResponseEntity<PagedModel<EventEntity>> queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler, @CurrentUser Account account) {
         Page<Event> page = this.eventRepository.findAll(pageable);
         var pagedModel = assembler.toModel(page, EventEntity::new);
         pagedModel.add(Link.of("/docs/index.html#resources-events-list", "profile"));
+
+        if (account != null) {
+            pagedModel.add(linkTo(EventController.class).withRel("create-event"));
+        }
         return ResponseEntity.ok(pagedModel);
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<?> getEvent(@PathVariable Integer id) {
+    public ResponseEntity<?> getEvent(@PathVariable Integer id, @CurrentUser Account account) {
         Optional<Event> eventOptional = eventRepository.findById(id);
 
         if (eventOptional.isEmpty())
@@ -88,11 +97,15 @@ public class EventController {
         Event event = eventOptional.get();
         EventEntity eventEntity = new EventEntity(event);
         eventEntity.add(Link.of("/docs/index.html#resources-events-get", "profile"));
+
+        if (account.equals(event.getManager())) {
+            eventEntity.add(linkTo(EventController.class).slash(event.getId()).withRel("events-update"));
+        }
         return ResponseEntity.ok(eventEntity);
     }
 
     @PutMapping("{id}")
-    public ResponseEntity<?> updateEvent(@PathVariable Integer id, @RequestBody @Validated EventDto eventDto, Errors errors) {
+    public ResponseEntity<?> updateEvent(@PathVariable Integer id, @RequestBody @Validated EventDto eventDto, Errors errors, @CurrentUser Account currentUser) {
         Optional<Event> eventOptional = eventRepository.findById(id);
 
         if (eventOptional.isEmpty())
@@ -107,6 +120,11 @@ public class EventController {
             return badRequest(errors);
 
         Event event = eventOptional.get();
+
+        if (!event.getManager().equals(currentUser)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
         modelMapper.map(eventDto, event);
         eventRepository.save(event);
 
