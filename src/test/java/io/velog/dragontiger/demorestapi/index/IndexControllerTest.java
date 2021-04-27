@@ -1,6 +1,7 @@
 package io.velog.dragontiger.demorestapi.index;
 
 import io.velog.dragontiger.demorestapi.common.BaseControllerTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
@@ -16,6 +17,7 @@ public class IndexControllerTest extends BaseControllerTest {
     MockMvc mockMvc;
 
     @Test
+    @DisplayName("인덱스 존재 여부 확인")
     public void index() throws Exception {
         this.mockMvc.perform(get("/api"))
                 .andDo(print())
